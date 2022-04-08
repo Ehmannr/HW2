@@ -1,29 +1,40 @@
 
 (function(){
   "use strict";
-
+//https://courses.cs.washington.edu/courses/cse154/webservices/pokedex/pokedex.php
+//https://courses.cs.washington.edu/courses/cse154/webservices/pokedex/game.php
   // MODULE GLOBAL VARIABLES, CONSTANTS
-  const BASE_URL = "";
+  const BASE_URL = "https://courses.cs.washington.edu/courses/cse154/webservices/pokedex/";
   let starterPokemon = ["Bulbasaur", "Charmander", "Squirtle"];
-
+  var nameArr;
+  var allNames;
 
   /**
    *  init() function  will be called when the window is loaded.
    */
   window.addEventListener("load", init);
-
+ 
 
   function init(){
-
-
+    requestAllNames();
+    
   }
 
 
   /**
    * make a GET request to get all 151 Pokemon sprite names
    */
-  function requestAllNames(){
+  async function requestAllNames(){
+    // TODO: GET data of a pokemon name
 
+    //get data remember fetch by default is a GET request
+    var url = BASE_URL + "pokedex.php?pokedex=all"
+    const response = await fetch(url)
+    allNames = await response.text()
+    
+    nameArr =  getName(allNames)
+    fillDex(nameArr)
+   //console.log(nameArr)
 
   }
 
@@ -68,7 +79,18 @@
   }
 
   /* write your helper function below */
+  async function fillDex(nameArr){
+    console.log('nameArr', nameArr)
+    
+    for(var i = 0; i<nameArr.length;i++){
+      var url = BASE_URL+ "sprites/"+ nameArr[i][1]+".png"
+    const response = await fetch(url)
+    var sprites = await response.blob
+      
 
+    }
+    
+  }
 
 
 
