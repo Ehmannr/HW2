@@ -1,4 +1,3 @@
-
 /* step 1: populate sprites for right box (#pokedex-veiw)
  *   pokedex.php?pokedex=all. 
  *   getting all sprites use url +pokemonname.png
@@ -13,6 +12,9 @@
   const baseURL = "https://courses.cs.washington.edu/courses/cse154/webservices/pokedex/";
   let starterPokemon = ["bulbasaur", "charmander", "squirtle"];
   let allNames
+  let mypokemon 
+  let gameID
+  let PID
 
 
   /**
@@ -106,13 +108,51 @@
     if (this.classList.contains("found")) {
       console.log("found")
       getPokemon(this.id)
+      mypokemon =this.id;
+      let btn_start = document.getElementById("start-btn")
+      btn_start.classList.remove("hidden")
+      btn_start.addEventListener("click", startBattle)
     } else {
       console.log("not found yet")
     }
-    
-
   }
 
+  
+  function startBattle() {
+    document.getElementById("title").innerHTML = "Pokemon Battle Mode"
+    document.getElementById("pokedex-view").classList.toggle("hidden")
+    document.getElementById("their-card").classList.toggle("hidden")
+    document.getElementById("start-btn").classList.toggle("hidden")
+    document.getElementById("flee-btn").classList.toggle("hidden")
+
+    document.getElementsByClassName("hp-info")[0].classList.remove("hidden")
+    document.getElementById("results-container").classList.toggle("hidden")
+
+    getOponent()
+  }
+
+
+  async function getOponent(){
+  // TODO: make a POST request to post a Pokemon name and start a battle
+  console.log("getting game set up ...")
+
+  //get data BY POST REQUEST FORM
+  var battleURL =  `${baseURL}game.php?`
+  var param  = new FormData
+  param.append("startgame", true)
+  param.append("mypokemon", mypokemon)
+    const response = await fetch(battleURL, {
+    method: "POST",
+    body: param
+  })
+  const data = await response.json()
+  console.log("their data = ", data.p2 )
+  gameID = data.guid
+  PID = data.pid
+  showCard("their-card", data.p2)
+}
+
+  
   //pass this the lowercase name of the pokemon
   function foundPokemon(pokemon) {
     let sprite = document.getElementById(pokemon)
@@ -125,11 +165,11 @@
     let pokenameURL = `${baseURL}pokedex.php?pokemon=${name}`
     let response = await fetch(pokenameURL)
     let data = await response.json()
-    showcard("my-card", data)
+    showCard("my-card", data)
 
   }
 
-  function showcard(cardId, pokemon) {
+  function showCard(cardId, pokemon) {
     //get name
     let parent = document.getElementById(cardId)
     let child = parent.getElementsByClassName("name")
@@ -142,13 +182,13 @@
     child[0].innerText = pokemon.info.description
     //pic
     child = parent.getElementsByClassName("pokepic")
-    child[0].src = baseURL+pokemon.images.photo
+    child[0].src = baseURL + pokemon.images.photo
     //type
     child = parent.getElementsByClassName("type")
-    child[0].src = baseURL+pokemon.images.typeIcon
+    child[0].src = baseURL + pokemon.images.typeIcon
     //weakness
     child = parent.getElementsByClassName("weakness")
-    child[0].src = baseURL +pokemon.images.weaknessIcon
+    child[0].src = baseURL + pokemon.images.weaknessIcon
 
     // The “moves” attribute includes data about the Pokemon’s moves
     // (between 1 and 4 moves, depending on the Pokemon).
