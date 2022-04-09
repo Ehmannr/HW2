@@ -109,7 +109,7 @@
     } else {
       console.log("not found yet")
     }
-    getPokemon(this.id)
+    
 
   }
 
@@ -155,6 +155,7 @@
     let btns = qsa("#" + cardId + " .moves button");
     for (let i = 0; i < btns.length; i++) {
       if (pokemon.moves[i]) {
+        btns[i].classList.remove("hidden");
         btns[i].children[0].innerText = pokemon.moves[i].name;
         if (pokemon.moves[i].dp) {
           btns[i].children[1].innerText = pokemon.moves[i].dp;
@@ -163,7 +164,7 @@
         btns[i].children[2].src = url;
         btns[i].children[2].alt = pokemon.moves[i].type;
       } else {
-        btns[i].classList.toggle("hidden");
+        btns[i].classList.add("hidden");
       }
     }
   }
