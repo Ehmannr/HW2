@@ -12,9 +12,11 @@
   const baseURL = "https://courses.cs.washington.edu/courses/cse154/webservices/pokedex/";
   let starterPokemon = ["bulbasaur", "charmander", "squirtle"];
   let allNames
-  let mypokemon 
+  let mypokemon
   let gameID
   let PID
+  let currentP1Hp
+  let currentP2hp
 
 
   /**
@@ -65,10 +67,50 @@
    * make a POST request to send a move of the battle
    * @param {string} movename name of a move
    */
-  function requestMove(movename) {
+  async function requestMove() {
+    //getting the move name of what you clicked
+    let moveEle = this.getElementsByClassName("move")
+    let moveName = moveEle[0].innerText
+    moveName = moveName.toLowerCase()
+    moveName = moveName.replace(/\s/g, '')
+    //console.log(moveName)
+    //post request
 
+
+    let battleURL = `${baseURL}game.php?`
+    let param = new FormData
+    param.append("guid", gameID)
+    param.append("pid", PID)
+    param.append("movename",moveName)
+    const response = await fetch(battleURL, {
+      method: "POST",
+      body: param
+    })
+    const data = await response.json()
+    console.log("move data", data)
+    postResults(data)
   }
+ 
+  function postResults(data){
+    let resultcon = document.getElementById("results-container")
+    //my moves
+     resultcon.innerHTML = `${data.p1.name} used ${data.results["p1-move"]}`+"<br />"+
+     `${data.results["p1-move"]} ${data.results["p1-result"]}`+"<br />"+"<br />"+
+     //their moves
+     `${data.p2.name} used ${data.results["p2-move"]}`+"<br />"+
+     `${data.results["p2-move"]} ${data.results["p2-result"]}`+"<br />"
 
+     //update hp value
+    
+     currentP1Hp = data.p1["current-hp"]
+     console.log(currentP1Hp)
+     currentP2hp = data.p2["current-hp"]
+     console.log(currentP2hp)
+     showCard("my-card", data.p1,currentP1Hp)
+     showCard("their-card",data.p2,currentP2hp)
+     //buffs I think are next
+  }
+  
 
   /**
    * parse the returned text from API to a 2D array
@@ -106,9 +148,9 @@
 
   function selectPokemon() {
     if (this.classList.contains("found")) {
-      console.log("found")
+      //console.log("found")
       getPokemon(this.id)
-      mypokemon =this.id;
+      mypokemon = this.id;
       let btn_start = document.getElementById("start-btn")
       btn_start.classList.remove("hidden")
       btn_start.addEventListener("click", startBattle)
@@ -117,7 +159,7 @@
     }
   }
 
-  
+
   function startBattle() {
     document.getElementById("title").innerHTML = "Pokemon Battle Mode"
     document.getElementById("pokedex-view").classList.toggle("hidden")
@@ -132,32 +174,41 @@
   }
 
 
-  async function getOponent(){
-  // TODO: make a POST request to post a Pokemon name and start a battle
-  console.log("getting game set up ...")
+  async function getOponent() {
 
-  //get data BY POST REQUEST FORM
-  var battleURL =  `${baseURL}game.php?`
-  var param  = new FormData
-  param.append("startgame", true)
-  param.append("mypokemon", mypokemon)
+    //adding button functionality 
+    let moves = qsa(".moves button"); //only do 0->3
+    //console.log(moves)
+    for (let i = 0; i < 4; i++) {
+      moves[i].disabled = false;
+      moves[i].addEventListener("click", requestMove)
+      //console.log(moves[i])
+    }
+    // TODO: make a POST request to post a Pokemon name and start a battle
+    console.log("getting game set up ...")
+
+    //get data BY POST REQUEST FORM
+    let battleURL = `${baseURL}game.php?`
+    let param = new FormData
+    param.append("startgame", true)
+    param.append("mypokemon", mypokemon)
     const response = await fetch(battleURL, {
-    method: "POST",
-    body: param
-  })
-  const data = await response.json()
-  console.log("their data = ", data.p2 )
-  gameID = data.guid
-  PID = data.pid
-  showCard("their-card", data.p2)
-}
+      method: "POST",
+      body: param
+    })
+    const data = await response.json()
+    //console.log("their data = ", data.p2)
+    gameID = data.guid
+    PID = data.pid
+    showCard("their-card", data.p2,currentP2hp)
+  }
 
-  
+
   //pass this the lowercase name of the pokemon
   function foundPokemon(pokemon) {
     let sprite = document.getElementById(pokemon)
     sprite.classList.add("found")
-    console.log(sprite)
+    //console.log(sprite)
 
   }
   async function getPokemon(name) {
@@ -165,18 +216,24 @@
     let pokenameURL = `${baseURL}pokedex.php?pokemon=${name}`
     let response = await fetch(pokenameURL)
     let data = await response.json()
-    showCard("my-card", data)
+    showCard("my-card", data,currentP1Hp)
 
   }
 
-  function showCard(cardId, pokemon) {
+  function showCard(cardId, pokemon,currentHP) {
     //get name
     let parent = document.getElementById(cardId)
     let child = parent.getElementsByClassName("name")
     child[0].innerText = pokemon.name
     //hp value
     child = parent.getElementsByClassName("hp")
-    child[0].innerText = pokemon.hp
+    if(currentHP!=null){
+      child[0].innerText = currentHP
+      
+    }else{
+      child[0].innerText = pokemon.hp
+    }
+    
     //desc
     child = parent.getElementsByClassName("info")
     child[0].innerText = pokemon.info.description
@@ -195,10 +252,11 @@
     let btns = qsa("#" + cardId + " .moves button");
     for (let i = 0; i < btns.length; i++) {
       if (pokemon.moves[i]) {
-        btns[i].classList.remove("hidden");
+
+
         btns[i].children[0].innerText = pokemon.moves[i].name;
         if (pokemon.moves[i].dp) {
-          btns[i].children[1].innerText = pokemon.moves[i].dp;
+          btns[i].children[1].innerText = pokemon.moves[i].dp + " DP";
         }
         let url = baseURL + "icons/" + pokemon.moves[i].type + ".jpg";
         btns[i].children[2].src = url;
