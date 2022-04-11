@@ -99,54 +99,83 @@
 
   function postResults(data) {
     let resultcon = document.getElementById("results-container")
+    let p1con = document.getElementById("p1-turn-results")
+    p1con.classList.remove("hidden")
+    let p2con = document.getElementById("p2-turn-results")
+    p2con.classList.remove("hidden")
+    let loading = document.getElementById("loading")
     //my moves
-    resultcon.innerHTML = `${data.p1.name} used ${data.results["p1-move"]}` + "<br />" +
-      `${data.results["p1-move"]} ${data.results["p1-result"]}` + "<br />" + "<br />" +
+    p1con.innerText =
+     `${data.p1.name} used ${data.results["p1-move"]} `+
+      `${data.results["p1-move"]} ${data.results["p1-result"]}` 
       //their moves
-      `${data.p2.name} used ${data.results["p2-move"]}` + "<br />" +
-      `${data.results["p2-move"]} ${data.results["p2-result"]}` + "<br />"
+      p2con.innerText = 
+      `${data.p2.name} used ${data.results["p2-move"]} ` +
+      `${data.results["p2-move"]} ${data.results["p2-result"]}` 
 
     //update hp value
 
     currentP1Hp = data.p1["current-hp"]
     currentP2hp = data.p2["current-hp"]
-    
+
     /*
     TODO : if any hp == 0 end game
     THEN: update hp bars
     THEN: add back to pokedex button
     */
+
     showCard("my-card", data.p1, currentP1Hp)
     showCard("their-card", data.p2, currentP2hp)
+    if (currentP1Hp == 0) {
+      endGame("lost", resultcon)
+    }
+    if (currentP2hp == 0) {
+      endGame("won", resultcon)
+    }
     //buffs I think are next
     let p1buff = data.p1.buffs
     let p2buff = data.p2.buffs
     //showing buffs
     if (p1buff.length > shownbuffp1) {
-      showBuff(p1buff, shownbuffp1,0)
+      showBuff(p1buff, shownbuffp1, 0)
       shownbuffp1 += 1
     }
     if (p2buff.length > shownbuffp2) {
-      showBuff(p2buff, shownbuffp2,1)
+      showBuff(p2buff, shownbuffp2, 1)
       shownbuffp2 += 1
     }
-  //debuff time
+    //debuff time
     let p1debuff = data.p1.debuffs
     let p2debuff = data.p2.debuffs
     //showing debuff
     if (p1debuff.length > showndebuffp1) {
-      console.log("mine")
-      showDebuff(p1debuff, showndebuffp1,0)
+      //console.log("mine")
+      showDebuff(p1debuff, showndebuffp1, 0)
       showndebuffp1 += 1
     }
     if (p2debuff.length > showndebuffp2) {
-      console.log("theirs")
-      showDebuff(p2debuff, showndebuffp2,1)
+     // console.log("theirs")
+      showDebuff(p2debuff, showndebuffp2, 1)
       showndebuffp2 += 1
     }
   }
 
-  function showBuff(buffArray, showndebuff,whoms) {
+  function endGame(endStatus) {
+    
+    let endbtn = document.getElementById("endgame")
+    endbtn.classList.remove("hidden")
+    endbtn.addEventListener("click",swapScene)
+    
+    
+   
+    
+
+
+
+
+  }
+
+  function showBuff(buffArray, showndebuff, whoms) {
     if (buffArray.length != 0) {
       let wrapper = document.getElementsByClassName("buffs")
       if (wrapper[0].classList.contains("hidden")) {
@@ -167,7 +196,7 @@
     }
   }
 
-  function showDebuff(debuffArray, showndebuff,whoms) {
+  function showDebuff(debuffArray, showndebuff, whoms) {
     if (debuffArray.length != 0) {
       let wrapper = document.getElementsByClassName("buffs")
       if (wrapper[0].classList.contains("hidden")) {
@@ -230,28 +259,37 @@
       mypokemon = this.id;
       let btn_start = document.getElementById("start-btn")
       btn_start.classList.remove("hidden")
-      btn_start.addEventListener("click", startBattle)
+      btn_start.addEventListener("click", swapScene)
     } else {
       console.log("not found yet")
     }
   }
 
 
-  function startBattle() {
-    document.getElementById("title").innerHTML = "Pokemon Battle Mode"
+  function swapScene() {
+    console.log(this)
     document.getElementById("pokedex-view").classList.toggle("hidden")
     document.getElementById("their-card").classList.toggle("hidden")
     document.getElementById("start-btn").classList.toggle("hidden")
     document.getElementById("flee-btn").classList.toggle("hidden")
-    document.getElementById("flee-btn").addEventListener("click",flee)
+    document.getElementById("flee-btn").addEventListener("click", flee)
 
     document.getElementsByClassName("hp-info")[0].classList.remove("hidden")
     document.getElementById("results-container").classList.toggle("hidden")
+    if(this.id == "endbtn"){
+      document.getElementById("title").innerHTML = "Your Pokedex"
+    }
+    if(this.id == "start-btn"){
+      document.getElementById("title").innerHTML = "Pokemon Battle Mode"
+  
+      getOponent()
+    }
 
-    getOponent()
+   
   }
-  function flee(){
-    console.log("flee")
+
+  function flee() {
+
   }
 
   async function getOponent() {
@@ -278,6 +316,8 @@
     gameID = data.guid
     PID = data.pid
     showCard("their-card", data.p2, currentP2hp)
+    
+    foundPokemon(data.p2.shortname)
   }
 
 
@@ -300,12 +340,30 @@
   function showCard(cardId, pokemon, currentHP) {
     //get name
     let parent = document.getElementById(cardId)
+    //console.log(cardId)
     let child = parent.getElementsByClassName("name")
     child[0].innerText = pokemon.name
     //hp value
     child = parent.getElementsByClassName("hp")
     if (currentHP != null) {
       child[0].innerText = currentHP
+      let barPercent = (1 - (pokemon.hp - currentHP) / pokemon.hp) * 100
+      let healthbar = document.getElementsByClassName("health-bar")
+      //console.log(barPercent)
+      //console.log(healthbar)
+      if (cardId == "my-card") {
+        healthbar[0].style.width = `${barPercent}%`
+        if (barPercent < 20) {
+          healthbar[0].classList.add("low-health")
+        }
+      } else {
+        healthbar[1].style.width = `${barPercent}%`
+        if (barPercent < 20) {
+          healthbar[1].classList.add("low-health")
+        }
+      }
+
+
 
     } else {
       child[0].innerText = pokemon.hp
