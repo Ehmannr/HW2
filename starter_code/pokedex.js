@@ -17,6 +17,10 @@
   let PID
   let currentP1Hp
   let currentP2hp
+  let shownbuffp1
+  let shownbuffp2
+  let showndebuffp1
+  let showndebuffp2
 
 
   /**
@@ -27,7 +31,10 @@
 
   function init() {
     requestAllNames()
-
+    shownbuffp1 = 0
+    shownbuffp2 = 0
+    showndebuffp1 = 0
+    showndebuffp2 = 0
   }
 
 
@@ -81,36 +88,107 @@
     let param = new FormData
     param.append("guid", gameID)
     param.append("pid", PID)
-    param.append("movename",moveName)
+    param.append("movename", moveName)
     const response = await fetch(battleURL, {
       method: "POST",
       body: param
     })
     const data = await response.json()
-    console.log("move data", data)
     postResults(data)
   }
- 
-  function postResults(data){
+
+  function postResults(data) {
     let resultcon = document.getElementById("results-container")
     //my moves
-     resultcon.innerHTML = `${data.p1.name} used ${data.results["p1-move"]}`+"<br />"+
-     `${data.results["p1-move"]} ${data.results["p1-result"]}`+"<br />"+"<br />"+
-     //their moves
-     `${data.p2.name} used ${data.results["p2-move"]}`+"<br />"+
-     `${data.results["p2-move"]} ${data.results["p2-result"]}`+"<br />"
+    resultcon.innerHTML = `${data.p1.name} used ${data.results["p1-move"]}` + "<br />" +
+      `${data.results["p1-move"]} ${data.results["p1-result"]}` + "<br />" + "<br />" +
+      //their moves
+      `${data.p2.name} used ${data.results["p2-move"]}` + "<br />" +
+      `${data.results["p2-move"]} ${data.results["p2-result"]}` + "<br />"
 
-     //update hp value
+    //update hp value
+
+    currentP1Hp = data.p1["current-hp"]
+    currentP2hp = data.p2["current-hp"]
     
-     currentP1Hp = data.p1["current-hp"]
-     console.log(currentP1Hp)
-     currentP2hp = data.p2["current-hp"]
-     console.log(currentP2hp)
-     showCard("my-card", data.p1,currentP1Hp)
-     showCard("their-card",data.p2,currentP2hp)
-     //buffs I think are next
+    /*
+    TODO : if any hp == 0 end game
+    THEN: update hp bars
+    THEN: add back to pokedex button
+    */
+    showCard("my-card", data.p1, currentP1Hp)
+    showCard("their-card", data.p2, currentP2hp)
+    //buffs I think are next
+    let p1buff = data.p1.buffs
+    let p2buff = data.p2.buffs
+    //showing buffs
+    if (p1buff.length > shownbuffp1) {
+      showBuff(p1buff, shownbuffp1,0)
+      shownbuffp1 += 1
+    }
+    if (p2buff.length > shownbuffp2) {
+      showBuff(p2buff, shownbuffp2,1)
+      shownbuffp2 += 1
+    }
+  //debuff time
+    let p1debuff = data.p1.debuffs
+    let p2debuff = data.p2.debuffs
+    //showing debuff
+    if (p1debuff.length > showndebuffp1) {
+      console.log("mine")
+      showDebuff(p1debuff, showndebuffp1,0)
+      showndebuffp1 += 1
+    }
+    if (p2debuff.length > showndebuffp2) {
+      console.log("theirs")
+      showDebuff(p2debuff, showndebuffp2,1)
+      showndebuffp2 += 1
+    }
   }
-  
+
+  function showBuff(buffArray, showndebuff,whoms) {
+    if (buffArray.length != 0) {
+      let wrapper = document.getElementsByClassName("buffs")
+      if (wrapper[0].classList.contains("hidden")) {
+        wrapper[0].classList.remove("hidden");
+      }
+      if (wrapper[1].classList.contains("hidden")) {
+        wrapper[1].classList.remove("hidden");
+      }
+
+      let len = buffArray.length
+      let index = len - 1
+      if (len > showndebuff) {
+        let child = document.createElement("div")
+        child.classList.add("buff")
+        child.classList.add(buffArray[index])
+        wrapper[whoms].append(child)
+      }
+    }
+  }
+
+  function showDebuff(debuffArray, showndebuff,whoms) {
+    if (debuffArray.length != 0) {
+      let wrapper = document.getElementsByClassName("buffs")
+      if (wrapper[0].classList.contains("hidden")) {
+        wrapper[0].classList.remove("hidden");
+      }
+      if (wrapper[1].classList.contains("hidden")) {
+        wrapper[1].classList.remove("hidden");
+      }
+
+      let len = debuffArray.length
+      let index = len - 1
+      if (len > showndebuff) {
+        let child = document.createElement("div")
+        child.classList.add("debuff")
+        child.classList.add(debuffArray[index])
+        wrapper[whoms].append(child)
+      }
+
+    }
+  }
+
 
   /**
    * parse the returned text from API to a 2D array
@@ -148,7 +226,6 @@
 
   function selectPokemon() {
     if (this.classList.contains("found")) {
-      //console.log("found")
       getPokemon(this.id)
       mypokemon = this.id;
       let btn_start = document.getElementById("start-btn")
@@ -166,23 +243,24 @@
     document.getElementById("their-card").classList.toggle("hidden")
     document.getElementById("start-btn").classList.toggle("hidden")
     document.getElementById("flee-btn").classList.toggle("hidden")
+    document.getElementById("flee-btn").addEventListener("click",flee)
 
     document.getElementsByClassName("hp-info")[0].classList.remove("hidden")
     document.getElementById("results-container").classList.toggle("hidden")
 
     getOponent()
   }
-
+  function flee(){
+    console.log("flee")
+  }
 
   async function getOponent() {
 
     //adding button functionality 
     let moves = qsa(".moves button"); //only do 0->3
-    //console.log(moves)
     for (let i = 0; i < 4; i++) {
       moves[i].disabled = false;
       moves[i].addEventListener("click", requestMove)
-      //console.log(moves[i])
     }
     // TODO: make a POST request to post a Pokemon name and start a battle
     console.log("getting game set up ...")
@@ -197,10 +275,9 @@
       body: param
     })
     const data = await response.json()
-    //console.log("their data = ", data.p2)
     gameID = data.guid
     PID = data.pid
-    showCard("their-card", data.p2,currentP2hp)
+    showCard("their-card", data.p2, currentP2hp)
   }
 
 
@@ -208,7 +285,7 @@
   function foundPokemon(pokemon) {
     let sprite = document.getElementById(pokemon)
     sprite.classList.add("found")
-    //console.log(sprite)
+
 
   }
   async function getPokemon(name) {
@@ -216,24 +293,24 @@
     let pokenameURL = `${baseURL}pokedex.php?pokemon=${name}`
     let response = await fetch(pokenameURL)
     let data = await response.json()
-    showCard("my-card", data,currentP1Hp)
+    showCard("my-card", data, currentP1Hp)
 
   }
 
-  function showCard(cardId, pokemon,currentHP) {
+  function showCard(cardId, pokemon, currentHP) {
     //get name
     let parent = document.getElementById(cardId)
     let child = parent.getElementsByClassName("name")
     child[0].innerText = pokemon.name
     //hp value
     child = parent.getElementsByClassName("hp")
-    if(currentHP!=null){
+    if (currentHP != null) {
       child[0].innerText = currentHP
-      
-    }else{
+
+    } else {
       child[0].innerText = pokemon.hp
     }
-    
+
     //desc
     child = parent.getElementsByClassName("info")
     child[0].innerText = pokemon.info.description
@@ -252,7 +329,7 @@
     let btns = qsa("#" + cardId + " .moves button");
     for (let i = 0; i < btns.length; i++) {
       if (pokemon.moves[i]) {
-
+        btns[i].classList.remove("hidden");
 
         btns[i].children[0].innerText = pokemon.moves[i].name;
         if (pokemon.moves[i].dp) {
