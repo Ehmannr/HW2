@@ -21,6 +21,7 @@
   let shownbuffp2
   let showndebuffp1
   let showndebuffp2
+  let battlemode
 
 
   /**
@@ -80,7 +81,7 @@
     let moveName = moveEle[0].innerText
     moveName = moveName.toLowerCase()
     moveName = moveName.replace(/\s/g, '')
-    //console.log(moveName)
+   
     //post request
 
 
@@ -118,19 +119,14 @@
     currentP1Hp = data.p1["current-hp"]
     currentP2hp = data.p2["current-hp"]
 
-    /*
-    TODO : if any hp == 0 end game
-    THEN: update hp bars
-    THEN: add back to pokedex button
-    */
-
+  
     showCard("my-card", data.p1, currentP1Hp)
     showCard("their-card", data.p2, currentP2hp)
     if (currentP1Hp == 0) {
-      endGame("lost", resultcon)
+      endGame("lost", p1con,p2con)
     }
     if (currentP2hp == 0) {
-      endGame("won", resultcon)
+      endGame("won", p1con,p2con)
     }
     //buffs I think are next
     let p1buff = data.p1.buffs
@@ -149,76 +145,50 @@
     let p2debuff = data.p2.debuffs
     //showing debuff
     if (p1debuff.length > showndebuffp1) {
-      //console.log("mine")
+      
       showDebuff(p1debuff, showndebuffp1, 0)
       showndebuffp1 += 1
     }
     if (p2debuff.length > showndebuffp2) {
-     // console.log("theirs")
+     
       showDebuff(p2debuff, showndebuffp2, 1)
       showndebuffp2 += 1
     }
   }
 
-  function endGame(endStatus) {
-    
+  function endGame() {
+    battlemode = false
     let endbtn = document.getElementById("endgame")
     endbtn.classList.remove("hidden")
     endbtn.addEventListener("click",swapScene)
-    
-    
+    //lock buttons
+     let moves = qsa(".moves button"); //only do 0->3
+     for (let i = 0; i < 4; i++) {
+       moves[i].disabled = true;
+     }
+    // need to reset hp values
+    let healthbar = document.getElementsByClassName("health-bar")
+    healthbar[0].style.width ="100%"
+    healthbar[1].style.width = "100%"
+    if(healthbar[0].classList.contains("low-health")){
+      healthbar[0].classList.remove("low-health")
+    }
+    if(healthbar[1].classList.contains("low-health")){
+      healthbar[1].classList.remove("low-health")
+    }
+
+     //remove all buffs/debuffs
+
+   let buff = document.getElementsByClassName("buffs")
+   console.log(buff)
+   buff[0].innerHTML = " "
+   buff[1].innerHTML = " "
    
-    
-
-
-
+   
 
   }
 
-  function showBuff(buffArray, showndebuff, whoms) {
-    if (buffArray.length != 0) {
-      let wrapper = document.getElementsByClassName("buffs")
-      if (wrapper[0].classList.contains("hidden")) {
-        wrapper[0].classList.remove("hidden");
-      }
-      if (wrapper[1].classList.contains("hidden")) {
-        wrapper[1].classList.remove("hidden");
-      }
-
-      let len = buffArray.length
-      let index = len - 1
-      if (len > showndebuff) {
-        let child = document.createElement("div")
-        child.classList.add("buff")
-        child.classList.add(buffArray[index])
-        wrapper[whoms].append(child)
-      }
-    }
-  }
-
-  function showDebuff(debuffArray, showndebuff, whoms) {
-    if (debuffArray.length != 0) {
-      let wrapper = document.getElementsByClassName("buffs")
-      if (wrapper[0].classList.contains("hidden")) {
-        wrapper[0].classList.remove("hidden");
-      }
-      if (wrapper[1].classList.contains("hidden")) {
-        wrapper[1].classList.remove("hidden");
-      }
-
-      let len = debuffArray.length
-      let index = len - 1
-      if (len > showndebuff) {
-        let child = document.createElement("div")
-        child.classList.add("debuff")
-        child.classList.add(debuffArray[index])
-        wrapper[whoms].append(child)
-      }
-
-    }
-  }
-
-
+ 
   /**
    * parse the returned text from API to a 2D array
    * @param {string} text A string of all 151 Pokemon sprite names
@@ -232,8 +202,12 @@
     return names;
   }
 
-  /* write your helper function below */
-  // https://courses.cs.washington.edu/courses/cse154/webservices/pokedex/sprites/
+  
+  /*
+
+      FILLS IN THE POKEDEX WITH SPRITES
+
+  */
   function filldex(allNames) {
     let spriteURl = "https://courses.cs.washington.edu/courses/cse154/webservices/pokedex/sprites/"
     const view_box = document.getElementById("pokedex-view")
@@ -252,7 +226,11 @@
     });
 
   }
+/*
 
+      IF FOUND CHOSE, ELSE NOTHING
+
+  */
   function selectPokemon() {
     if (this.classList.contains("found")) {
       getPokemon(this.id)
@@ -265,19 +243,33 @@
     }
   }
 
+/*
 
+      SWAPS BETWEEN BATTLE AND POKEDEX
+
+  */
   function swapScene() {
-    console.log(this)
+   
+
     document.getElementById("pokedex-view").classList.toggle("hidden")
     document.getElementById("their-card").classList.toggle("hidden")
     document.getElementById("start-btn").classList.toggle("hidden")
     document.getElementById("flee-btn").classList.toggle("hidden")
-    document.getElementById("flee-btn").addEventListener("click", flee)
+    document.getElementById("flee-btn").addEventListener("click", swapScene )
 
     document.getElementsByClassName("hp-info")[0].classList.remove("hidden")
     document.getElementById("results-container").classList.toggle("hidden")
-    if(this.id == "endbtn"){
+    if(this.id == "endgame"||this.id == "flee-btn"){
+      endGame()
+      battlemode = false
+      let healthbar = document.getElementsByClassName("health-bar")
+      healthbar[0].style.width ="100%"
+      healthbar[1].style.width = "100%"
+
       document.getElementById("title").innerHTML = "Your Pokedex"
+      console.log(document.getElementById("endgame"))
+     document.getElementById("endgame").classList.add("hidden")
+      battlemode = false
     }
     if(this.id == "start-btn"){
       document.getElementById("title").innerHTML = "Pokemon Battle Mode"
@@ -285,13 +277,33 @@
       getOponent()
     }
 
+    //this is a reset part
    
-  }
 
+    let p1con = document.getElementById("p1-turn-results")
+    let p2con = document.getElementById("p2-turn-results")
+  //need to hide the inner text of p1 and p2
+  p1con.innerText =
+  " "
+   //their moves
+   p2con.innerText = 
+   " " 
+
+  }
+/*
+
+      WHEN YOU HIT FLEE
+
+  */
   function flee() {
-
+   
+    swapScene()
   }
+/*
 
+      GETS OPPONENT POKEMON
+
+  */
   async function getOponent() {
 
     //adding button functionality 
@@ -301,7 +313,7 @@
       moves[i].addEventListener("click", requestMove)
     }
     // TODO: make a POST request to post a Pokemon name and start a battle
-    console.log("getting game set up ...")
+   
 
     //get data BY POST REQUEST FORM
     let battleURL = `${baseURL}game.php?`
@@ -316,41 +328,53 @@
     gameID = data.guid
     PID = data.pid
     showCard("their-card", data.p2, currentP2hp)
+    battlemode = true
     
     foundPokemon(data.p2.shortname)
   }
 
 
-  //pass this the lowercase name of the pokemon
+  /*
+
+      ADDS FOUND CLASS TO NEW POKEMON
+
+  */
   function foundPokemon(pokemon) {
     let sprite = document.getElementById(pokemon)
     sprite.classList.add("found")
-
-
   }
+
+  /*
+
+      GETS THE POKEMON NAME THAT YOU CLICKED ON
+
+  */
   async function getPokemon(name) {
     //https://courses.cs.washington.edu/courses/cse154/webservices/pokedex/pokedex.php?pokemon=pikachu
     let pokenameURL = `${baseURL}pokedex.php?pokemon=${name}`
     let response = await fetch(pokenameURL)
     let data = await response.json()
     showCard("my-card", data, currentP1Hp)
-
   }
 
+  /*
+
+      SHOWS THE CARD OF POKEMON
+
+  */
   function showCard(cardId, pokemon, currentHP) {
     //get name
     let parent = document.getElementById(cardId)
-    //console.log(cardId)
+    
     let child = parent.getElementsByClassName("name")
     child[0].innerText = pokemon.name
     //hp value
     child = parent.getElementsByClassName("hp")
-    if (currentHP != null) {
+    
+    if (battlemode == true) {
       child[0].innerText = currentHP
       let barPercent = (1 - (pokemon.hp - currentHP) / pokemon.hp) * 100
       let healthbar = document.getElementsByClassName("health-bar")
-      //console.log(barPercent)
-      //console.log(healthbar)
       if (cardId == "my-card") {
         healthbar[0].style.width = `${barPercent}%`
         if (barPercent < 20) {
@@ -362,13 +386,9 @@
           healthbar[1].classList.add("low-health")
         }
       }
-
-
-
     } else {
       child[0].innerText = pokemon.hp
     }
-
     //desc
     child = parent.getElementsByClassName("info")
     child[0].innerText = pokemon.info.description
@@ -401,6 +421,57 @@
       }
     }
   }
+
+/*
+
+        BUFFS AND DEBUFFS
+
+*/
+
+function showBuff(buffArray, showndebuff, whoms) {
+  if (buffArray.length != 0) {
+    let wrapper = document.getElementsByClassName("buffs")
+    if (wrapper[0].classList.contains("hidden")) {
+      wrapper[0].classList.remove("hidden");
+    }
+    if (wrapper[1].classList.contains("hidden")) {
+      wrapper[1].classList.remove("hidden");
+    }
+
+    let len = buffArray.length
+    let index = len - 1
+    if (len > showndebuff) {
+      let child = document.createElement("div")
+      child.classList.add("buff")
+      child.classList.add(buffArray[index])
+      wrapper[whoms].append(child)
+    }
+  }else(
+    wrapper.classList.add("hidden")
+  )
+}
+
+function showDebuff(debuffArray, showndebuff, whoms) {
+  if (debuffArray.length != 0) {
+    let wrapper = document.getElementsByClassName("buffs")
+    if (wrapper[0].classList.contains("hidden")) {
+      wrapper[0].classList.remove("hidden");
+    }
+    if (wrapper[1].classList.contains("hidden")) {
+      wrapper[1].classList.remove("hidden");
+    }
+
+    let len = debuffArray.length
+    let index = len - 1
+    if (len > showndebuff) {
+      let child = document.createElement("div")
+      child.classList.add("debuff")
+      child.classList.add(debuffArray[index])
+      wrapper[whoms].append(child)
+    }
+
+  }
+}
 
 
   /* ------------------------------ Helper Functions  ------------------------------ */
