@@ -181,7 +181,7 @@
 
    let buff = document.getElementsByClassName("buffs")
    console.log(buff)
-   buff[0].innerHTML = " "
+   buff[0].innerHTML = "  "
    buff[1].innerHTML = " "
    
    
